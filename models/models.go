@@ -1,34 +1,36 @@
 package models
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
 type Campaign struct {
-	gorm.Model
+	ID          uint   `gorm:"primaryKey"`
 	Name        string `gorm:"unique;not null"`
 	MgTemplate  string `gorm:"not null"`
-	DefaultLang string `gorm:"default:en;not null"`
+	DefaultLang string `gorm:"type:varchar(2);default:en;not null"`
 }
 
 type Translation struct {
-	gorm.Model
-	CampID   uint     `gorm:"not null"`
+	ID       uint     `gorm:"primaryKey"`
+	CampID   uint     `gorm:"uniqueIndex:unique_campID_lang;not null,constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Campaign Campaign `gorm:"foreignKey: CampID"`
-	Lang     string   `gorm:"not null"`
+	Lang     string   `gorm:"uniqueIndex:unique_campID_lang;type:varchar(2);not null"`
 	From     string   `gorm:"not null"`
 	Subject  string   `gorm:"not null"`
 }
 
 type SendStat struct {
-	gorm.Model
-	Ts       int64    `gorm:"autoCreateTime"`
-	CampID   uint     `gorm:"not null"`
-	Campaign Campaign `gorm:"foreignKey: CampID"`
-	Lang     string   `gorm:"not null"`
-	Email    string   `gorm:"not null"`
-	ExtID    string   `gorm:"not null"`
-	Success  bool     `gorm:"not null"`
+	ID       uint      `gorm:"primaryKey"`
+	Ts       time.Time `gorm:"default:current_timestamp"`
+	CampID   uint      `gorm:"not null, constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Campaign Campaign  `gorm:"foreignKey: CampID"`
+	Lang     string    `gorm:"type:varchar(2);not null"`
+	Email    string    `gorm:"not null"`
+	ExtID    string    `gorm:"not null"`
+	Success  bool      `gorm:"not null"`
 	ErrorMsg string
 }
 
