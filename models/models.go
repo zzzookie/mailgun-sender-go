@@ -7,16 +7,18 @@ import (
 )
 
 type Campaign struct {
-	ID          uint   `gorm:"primaryKey"`
-	Name        string `gorm:"unique;not null"`
-	MgTemplate  string `gorm:"not null"`
-	DefaultLang string `gorm:"type:varchar(2);default:en;not null"`
+	ID           uint          `gorm:"primaryKey"`
+	Name         string        `gorm:"unique;not null"`
+	MgTemplate   string        `gorm:"not null"`
+	DefaultLang  string        `gorm:"type:varchar(2);default:en;not null"`
+	Translations []Translation `gorm:"foreignKey:CampID"`
+	SendStats    []SendStat    `gorm:"foreignKey:CampID"`
 }
 
 type Translation struct {
 	ID       uint     `gorm:"primaryKey"`
 	CampID   uint     `gorm:"uniqueIndex:unique_campID_lang;not null,constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Campaign Campaign `gorm:"foreignKey: CampID"`
+	Campaign Campaign `gorm:"foreignKey:CampID"`
 	Lang     string   `gorm:"uniqueIndex:unique_campID_lang;type:varchar(2);not null"`
 	From     string   `gorm:"not null"`
 	Subject  string   `gorm:"not null"`
@@ -26,7 +28,7 @@ type SendStat struct {
 	ID       uint      `gorm:"primaryKey"`
 	Ts       time.Time `gorm:"default:current_timestamp"`
 	CampID   uint      `gorm:"not null, constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Campaign Campaign  `gorm:"foreignKey: CampID"`
+	Campaign Campaign  `gorm:"foreignKey:CampID"`
 	Lang     string    `gorm:"type:varchar(2);not null"`
 	Email    string    `gorm:"not null"`
 	ExtID    string    `gorm:"not null"`
@@ -41,7 +43,7 @@ func Migrate(db *gorm.DB) error {
 
 func Rollback(db *gorm.DB) {
 	db.Migrator().DropTable(&Campaign{}, &Translation{}, &SendStat{})
-	db.Migrator().DropTable("Campaings", "Translations", "Send_stats")
-	db.Migrator().DropConstraint("Translations", "unique_camp_lang")
-	db.Migrator().DropConstraint("Send_stats", "unique_camp_lang")
+	db.Migrator().DropTable("campaings", "translations", "send_stats")
+	db.Migrator().DropConstraint("translations", "unique_camp_lang")
+	db.Migrator().DropConstraint("send_stats", "unique_camp_lang")
 }
