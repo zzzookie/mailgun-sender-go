@@ -3,33 +3,11 @@ package database
 import (
 	"fmt"
 	"mailgun-sender-go/models"
+	"mailgun-sender-go/structs"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-// type Campaign struct {
-// 	ID           int
-// 	Name         string
-// 	MgTemplate   string
-// 	DefaultLang  string
-// 	Translations []Translation
-// }
-
-// type Translation struct {
-// 	Lang       string
-// 	From       string
-// 	Subject    string
-// 	Recipients []utils.User
-// }
-
-// type SendStat struct {
-// 	ID      int
-// 	Lang    string
-// 	Email   string
-// 	Ts      string
-// 	Success bool
-// }
 
 type Database struct {
 	DB *gorm.DB
@@ -79,19 +57,19 @@ func (db *Database) GetCampaignByName(campaignName string, userLangs []string) (
 	return &campaign, nil
 }
 
-// func (db *Database) SendStats(statsData []SendStat) ([]SendStat, error) {
-// 	err := db.DB.Create(&statsData).Error
-// 	if err != nil {
-// 		return nil, fmt.Errorf("Error while using sendStats method: %s", err.Error())
-// 	}
-// 	return statsData, nil
-// }
+func (db *Database) SendStats(statsData []structs.SendStat) ([]structs.SendStat, error) {
+	err := db.DB.Create(&statsData).Error
+	if err != nil {
+		return nil, fmt.Errorf("Error while using sendStats method: %s", err.Error())
+	}
+	return statsData, nil
+}
 
-// func (db *Database) GetDuplicatedRecipients(campID int, emails []string) ([]SendStat, error) {
-// 	var duplicatedRecipients []SendStat
-// 	err := db.DB.Where("camp_id = ? AND email IN ? AND success = ?", campID, emails, true).Find(&duplicatedRecipients).Error
-// 	if err != nil {
-// 		return nil, fmt.Errorf("Error while using getDuplicatedRecipients method: %s", err.Error())
-// 	}
-// 	return duplicatedRecipients, nil
-// }
+func (db *Database) GetDuplicatedRecipients(campID uint, emails []string) ([]structs.SendStat, error) {
+	var duplicatedRecipients []structs.SendStat
+	err := db.DB.Where("camp_id = ? AND email IN ? AND success = ?", campID, emails, true).Find(&duplicatedRecipients).Error
+	if err != nil {
+		return nil, fmt.Errorf("Error while using getDuplicatedRecipients method: %s", err.Error())
+	}
+	return duplicatedRecipients, nil
+}

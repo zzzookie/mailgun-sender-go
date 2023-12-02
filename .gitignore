@@ -22,3 +22,5 @@ go.work
 .env
 .git
 .maincopy
+launch.json
+example.csv

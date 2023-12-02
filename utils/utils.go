@@ -3,17 +3,11 @@ package utils
 import (
 	"flag"
 	"fmt"
+	"mailgun-sender-go/structs"
 	"os"
 	"reflect"
 	"strings"
 )
-
-type User struct {
-	Name  string
-	Email string
-	Lang  string
-	ExtID string
-}
 
 func ReadClArgs() (string, string) {
 	var maillistFile string
@@ -43,7 +37,7 @@ func ReadClArgs() (string, string) {
 	return maillistFile, strings.TrimSpace(campaignName)
 }
 
-func ParseMaillist(fileName string) ([]User, error) {
+func ParseMaillist(fileName string) ([]structs.Recipient, error) {
 	_, err := os.Stat(fileName)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("Error: File \"%s\" not found", fileName)
@@ -61,14 +55,14 @@ func ParseMaillist(fileName string) ([]User, error) {
 		usersStrArr = usersStrArr[1:]
 	}
 
-	var users []User
+	var users []structs.Recipient
 	for _, userStr := range usersStrArr {
 		fields := strings.Split(userStr, ",")
 		name := strings.TrimSpace(fields[0])
 		email := strings.TrimSpace(fields[1])
 		lang := strings.TrimSpace(fields[2])
 		extID := strings.TrimSpace(fields[3])
-		users = append(users, User{Name: name, Email: email, Lang: lang, ExtID: extID})
+		users = append(users, structs.Recipient{Name: name, Email: email, Lang: lang, ExtID: extID})
 	}
 
 	return users, nil
