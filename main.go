@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -103,68 +104,67 @@ func main() {
 			emails = append(emails, recipient.Email)
 		}
 
-		// duplicatedRecipients, err := db.GetDuplicatedRecipients(campaign.ID, emails)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// 	return
-		// }
+		duplicatedRecipients, err := db.GetDuplicatedRecipients(campaign.ID, emails)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
-		// if len(duplicatedRecipients) > 0 {
-		// 	duplicatedRecipientsEmails := make(map[string]bool)
-		// 	for _, r := range duplicatedRecipients {
-		// 		duplicatedRecipientsEmails[r.Email] = true
-		// 	}
+		if len(duplicatedRecipients) > 0 {
+			duplicatedRecipientsEmails := utils.GetUniqueValues(duplicatedRecipients, "Email")
+			removedIndexes := make([]int, 0)
+			excludedRecipients := make([]structs.RecipientExcluded, 0)
 
-		// 	removedIndexes := make([]int, 0)
-		// 	excludedRecipients := make([]structs.RecipientExcluded, 0)
-		// 	for i, recipient := range translation.Recipients {
-		// 		if duplicatedRecipientsEmails[recipient.Email] {
-		// 			var sendStatsID uint
-		// 			for _, r := range duplicatedRecipients {
-		// 				if recipient.Email == r.Email && translation.Lang == r.Lang {
-		// 					sendStatsID = r.ID
-		// 					break
-		// 				}
-		// 			}
-		// 			excludedRecipients = append(excludedRecipients, structs.RecipientExcluded{
-		// 				Recipient:   recipient,
-		// 				SendStatsID: sendStatsID,
-		// 			})
-		// 			removedIndexes = append(removedIndexes, i)
-		// 		}
-		// 	}
+			for i, recipient := range translation.Recipients {
+				if slices.Contains(duplicatedRecipientsEmails, recipient.Email) {
+					var sendStatsID uint
+					for _, r := range duplicatedRecipients {
+						if recipient.Email == r.Email && translation.Lang == r.Lang {
+							sendStatsID = r.ID
+							break
+						}
+					}
+					excludedRecipients = append(excludedRecipients, structs.RecipientExcluded{
+						Recipient:   recipient,
+						SendStatsID: sendStatsID,
+					})
+					removedIndexes = append(removedIndexes, i)
+				}
+			}
 
-		// 	filteredRecipients := make([]structs.Recipient, 0)
-		// 	for i, recipient := range translation.Recipients {
-		// 		if !slices.Contains(removedIndexes, i) {
-		// 			filteredRecipients = append(filteredRecipients, recipient)
-		// 		}
-		// 	}
-		// 	translation.Recipients = filteredRecipients
+			filteredRecipients := make([]structs.Recipient, 0)
+			for i, recipient := range translation.Recipients {
+				if !slices.Contains(removedIndexes, i) {
+					filteredRecipients = append(filteredRecipients, recipient)
+				}
+			}
+			translation.Recipients = filteredRecipients
 
-		// 	excludedStatsData := make([]structs.SendStat, 0)
-		// 	for _, r := range excludedRecipients {
-		// 		excludedStatsData = append(excludedStatsData, structs.SendStat{
-		// 			Lang:     translation.Lang,
-		// 			Email:    r.Recipient.Email,
-		// 			ExtID:    r.Recipient.ExtID,
-		// 			Success:  false,
-		// 			ErrorMsg: fmt.Sprintf("already sent: <%s>", r.SendStatsID),
-		// 		})
-		// 	}
+			excludedStatsData := make([]structs.SendStat, 0)
+			for _, r := range excludedRecipients {
+				excludedStatsData = append(excludedStatsData, structs.SendStat{
+					CampID:   campaign.ID,
+					Lang:     translation.Lang,
+					Email:    r.Recipient.Email,
+					ExtID:    r.Recipient.ExtID,
+					Success:  false,
+					ErrorMsg: "already sent: <" + strconv.FormatUint(uint64(r.SendStatsID), 10) + ">",
+				})
+			}
 
-		// 	_, err = db.SendStats(excludedStatsData)
-		// 	if err != nil {
-		// 		fmt.Println(err)
-		// 		return
-		// 	}
-		// }
+			_, err = db.SendStats(excludedStatsData)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
 
 		if len(translation.Recipients) == 0 { // Проверка, есть ли кому посылать
 			fmt.Printf("Nothing has been sent: all the recipients in the list has received \"%s\" campaign email before.\n", campaignName)
 			fmt.Println("Information has been saved in the statistics.")
 			return
 		}
+
 		if len(translation.Recipients) > 1000 { // Заглушка, Mailgun не может посылать больше 1000 за раз
 			fmt.Println("Can't send more than to 1000 recipients at once.")
 			return
@@ -186,7 +186,7 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 		defer cancel()
 
-		_, _, err := mg.Send(ctx, message)
+		_, _, err = mg.Send(ctx, message)
 
 		var statsData []structs.SendStat
 		success := false

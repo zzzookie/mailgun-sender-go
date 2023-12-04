@@ -57,19 +57,23 @@ func (db *Database) GetCampaignByName(campaignName string, userLangs []string) (
 	return &campaign, nil
 }
 
+func (db *Database) GetDuplicatedRecipients(campID uint, emails []string) ([]models.SendStat, error) {
+	var duplicatedRecipients []models.SendStat
+	err := db.DB.
+		Where("camp_id = ? AND email IN ? AND success = true", campID, emails).
+		Find(&duplicatedRecipients).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("Error while using getDuplicatedRecipients method: %s", err.Error())
+	}
+
+	return duplicatedRecipients, nil
+}
+
 func (db *Database) SendStats(statsData []structs.SendStat) ([]structs.SendStat, error) {
 	err := db.DB.Create(&statsData).Error
 	if err != nil {
 		return nil, fmt.Errorf("Error while using sendStats method: %s", err.Error())
 	}
 	return statsData, nil
-}
-
-func (db *Database) GetDuplicatedRecipients(campID uint, emails []string) ([]structs.SendStat, error) {
-	var duplicatedRecipients []structs.SendStat
-	err := db.DB.Where("camp_id = ? AND email IN ? AND success = ?", campID, emails, true).Find(&duplicatedRecipients).Error
-	if err != nil {
-		return nil, fmt.Errorf("Error while using getDuplicatedRecipients method: %s", err.Error())
-	}
-	return duplicatedRecipients, nil
 }
